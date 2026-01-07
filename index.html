@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spotify-Style Music Player</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #121212;
+  color: #fff;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  background: #000;
+  padding: 20px;
+}
+
+.sidebar h2 {
+  color: #1db954;
+  margin-bottom: 20px;
+}
+
+.sidebar button {
+  width: 100%;
+  padding: 12px;
+  background: #1db954;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.sidebar li {
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.sidebar li:hover {
+  background: #282828;
+}
+
+/* Player */
+.player {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.player img {
+  width: 220px;
+  height: 220px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.controls button {
+  font-size: 22px;
+  margin: 10px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+input[type="range"] {
+  width: 300px;
+  margin: 10px;
+}
+
+footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #181818;
+  padding: 10px;
+  text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>🎵 MyMusic</h2>
+    <button onclick="fileInput.click()">Upload Songs</button>
+    <ul id="playlist"></ul>
+  </div>
+
+  <!-- Player -->
+  <div class="player">
+    <img id="cover" src="https://i.imgur.com/8Km9tLL.png">
+    <h3 id="title">No song playing</h3>
+
+    <div class="controls">
+      <button onclick="prev()">⏮</button>
+      <button onclick="playPause()">▶ / ⏸</button>
+      <button onclick="next()">⏭</button>
+    </div>
+
+    <input type="range" id="progress" value="0">
+    <input type="range" id="volume" min="0" max="1" step="0.01" value="1">
+  </div>
+
+</div>
+
+<footer>
+  Spotify-style Player | Legal | Offline
+</footer>
+
+<input type="file" id="fileInput" accept="audio/*" multiple hidden>
+
+<script>
+const audio = new Audio();
+let songs = JSON.parse(localStorage.getItem("songs")) || [];
+let current = 0;
+
+const playlist = document.getElementById("playlist");
+const title = document.getElementById("title");
+const progress = document.getElementById("progress");
+const volume = document.getElementById("volume");
+const fileInput = document.getElementById("fileInput");
+
+volume.oninput = () => audio.volume = volume.value;
+
+fileInput.onchange = e => {
+  for (let file of e.target.files) {
+    const url = URL.createObjectURL(file);
+    songs.push({ name: file.name, url });
+  }
+  localStorage.setItem("songs", JSON.stringify(songs));
+  renderPlaylist();
+};
+
+function renderPlaylist() {
+  playlist.innerHTML = "";
+  songs.forEach((song, i) => {
+    const li = document.createElement("li");
+    li.textContent = song.name;
+    li.onclick = () => playSong(i);
+    playlist.appendChild(li);
+  });
+}
+
+function playSong(index) {
+  current = index;
+  audio.src = songs[current].url;
+  audio.play();
+  title.textContent = songs[current].name;
+}
+
+function playPause() {
+  audio.paused ? audio.play() : audio.pause();
+}
+
+function next() {
+  current = (current + 1) % songs.length;
+  playSong(current);
+}
+
+function prev() {
+  current = (current - 1 + songs.length) % songs.length;
+  playSong(current);
+}
+
+audio.ontimeupdate = () => {
+  progress.value = (audio.currentTime / audio.duration) * 100 || 0;
+};
+
+progress.oninput = () => {
+  audio.currentTime = (progress.value / 100) * audio.duration;
+};
+
+renderPlaylist();
+</script>
+
+</body>
+</html>
