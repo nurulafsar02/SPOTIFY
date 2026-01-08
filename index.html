@@ -2,103 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Spotify-Style Music Player</title>
+<title>My Spotify Style Player</title>
+
+<script src="https://www.youtube.com/iframe_api"></script>
 
 <style>
-* {
-  box-sizing: border-box;
-  font-family: Arial, sans-serif;
-}
+*{box-sizing:border-box;font-family:Arial}
+body{margin:0;background:#121212;color:#fff}
+.app{display:flex;height:100vh}
+.sidebar{width:320px;background:#000;padding:20px;overflow:auto}
+.sidebar h2{color:#1db954}
+.sidebar button,input{width:100%;padding:10px;margin:6px 0;border:none;border-radius:4px}
+.sidebar button{background:#1db954;font-weight:bold;cursor:pointer}
+.sidebar li{list-style:none;padding:10px;border-radius:4px;cursor:pointer}
+.sidebar li:hover{background:#282828}
 
-body {
-  margin: 0;
-  background: #121212;
-  color: #fff;
-}
-
-.app {
-  display: flex;
-  height: 100vh;
-}
-
-/* Sidebar */
-.sidebar {
-  width: 260px;
-  background: #000;
-  padding: 20px;
-}
-
-.sidebar h2 {
-  color: #1db954;
-  margin-bottom: 20px;
-}
-
-.sidebar button {
-  width: 100%;
-  padding: 12px;
-  background: #1db954;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.sidebar ul {
-  list-style: none;
-  padding: 0;
-  margin-top: 20px;
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.sidebar li {
-  padding: 10px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.sidebar li:hover {
-  background: #282828;
-}
-
-/* Player */
-.player {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.player img {
-  width: 220px;
-  height: 220px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.controls button {
-  font-size: 22px;
-  margin: 10px;
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-}
-
-input[type="range"] {
-  width: 300px;
-  margin: 10px;
-}
-
-footer {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: #181818;
-  padding: 10px;
-  text-align: center;
-}
+.player{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.controls button{font-size:26px;margin:10px;background:none;border:none;color:white;cursor:pointer}
+#ytplayer{margin-top:15px}
+footer{position:fixed;bottom:0;width:100%;background:#181818;padding:8px;text-align:center}
 </style>
 </head>
 
@@ -106,40 +28,47 @@ footer {
 
 <div class="app">
 
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <h2>🎵 MyMusic</h2>
-    <button onclick="fileInput.click()">Upload Songs</button>
-    <ul id="playlist"></ul>
+<!-- Sidebar -->
+<div class="sidebar">
+  <h2>🎵 MyMusic</h2>
+
+  <button onclick="fileInput.click()">Upload MP3</button>
+
+  <input type="text" id="search" placeholder="Search singer or song">
+  <button onclick="searchSong()">Search YouTube</button>
+
+  <ul id="playlist"></ul>
+</div>
+
+<!-- Player -->
+<div class="player">
+  <h2 id="title">No song playing</h2>
+
+  <div class="controls">
+    <button onclick="prev()">⏮</button>
+    <button onclick="playPause()">▶ / ⏸</button>
+    <button onclick="next()">⏭</button>
   </div>
 
-  <!-- Player -->
-  <div class="player">
-    <img id="cover" src="https://i.imgur.com/8Km9tLL.png">
-    <h3 id="title">No song playing</h3>
+  <input type="range" id="progress" value="0" style="width:300px">
+  <input type="range" id="volume" min="0" max="1" step="0.01" value="1" style="width:300px">
 
-    <div class="controls">
-      <button onclick="prev()">⏮</button>
-      <button onclick="playPause()">▶ / ⏸</button>
-      <button onclick="next()">⏭</button>
-    </div>
-
-    <input type="range" id="progress" value="0">
-    <input type="range" id="volume" min="0" max="1" step="0.01" value="1">
-  </div>
+  <div id="ytplayer"></div>
+</div>
 
 </div>
 
-<footer>
-  Spotify-style Player | Legal | Offline
-</footer>
+<footer>Spotify Style Player | Offline + YouTube Streaming</footer>
 
 <input type="file" id="fileInput" accept="audio/*" multiple hidden>
 
 <script>
+const API_KEY = "AIzaSyASMJNEGj___jWguaLPdjSNEp3gxAbWG7o";
+
 const audio = new Audio();
 let songs = JSON.parse(localStorage.getItem("songs")) || [];
 let current = 0;
+let mode = "offline";
 
 const playlist = document.getElementById("playlist");
 const title = document.getElementById("title");
@@ -159,16 +88,17 @@ fileInput.onchange = e => {
 };
 
 function renderPlaylist() {
-  playlist.innerHTML = "";
+  playlist.innerHTML = "<h3>Offline Songs</h3>";
   songs.forEach((song, i) => {
     const li = document.createElement("li");
-    li.textContent = song.name;
+    li.textContent = "🎵 " + song.name;
     li.onclick = () => playSong(i);
     playlist.appendChild(li);
   });
 }
 
 function playSong(index) {
+  mode = "offline";
   current = index;
   audio.src = songs[current].url;
   audio.play();
@@ -176,17 +106,25 @@ function playSong(index) {
 }
 
 function playPause() {
-  audio.paused ? audio.play() : audio.pause();
+  if(mode==="offline"){
+    audio.paused ? audio.play() : audio.pause();
+  }else{
+    player.getPlayerState()==1 ? player.pauseVideo() : player.playVideo();
+  }
 }
 
 function next() {
-  current = (current + 1) % songs.length;
-  playSong(current);
+  if(mode==="offline"){
+    current = (current + 1) % songs.length;
+    playSong(current);
+  }
 }
 
 function prev() {
-  current = (current - 1 + songs.length) % songs.length;
-  playSong(current);
+  if(mode==="offline"){
+    current = (current - 1 + songs.length) % songs.length;
+    playSong(current);
+  }
 }
 
 audio.ontimeupdate = () => {
@@ -198,6 +136,44 @@ progress.oninput = () => {
 };
 
 renderPlaylist();
+
+
+// ================== YOUTUBE PLAYER ===================
+let player;
+
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('ytplayer', {
+    height: '220',
+    width: '320',
+    videoId: '',
+    playerVars: { 'playsinline': 1 }
+  });
+}
+
+async function searchSong() {
+  const q = document.getElementById("search").value;
+  if(!q) return alert("Enter singer or song name");
+
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&q=${encodeURIComponent(q)}&key=${API_KEY}`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+
+  playlist.innerHTML = "<h3>YouTube Results</h3>";
+
+  data.items.forEach(video => {
+    const li = document.createElement("li");
+    li.textContent = "▶ " + video.snippet.title;
+    li.onclick = () => playYouTube(video.id.videoId, video.snippet.title);
+    playlist.appendChild(li);
+  });
+}
+
+function playYouTube(id, name) {
+  mode = "youtube";
+  title.textContent = name;
+  player.loadVideoById(id);
+}
 </script>
 
 </body>
